@@ -1,0 +1,1 @@
+Copyright file for LVGL Saturn SGL demo.
