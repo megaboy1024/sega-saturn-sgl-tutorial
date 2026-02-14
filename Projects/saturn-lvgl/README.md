@@ -6,7 +6,24 @@ LVGL v9.2 running on the Sega Saturn using SGL directly — no Jo Engine depende
 
 - Renders LVGL UI to VDP2 NBG1 in bitmap mode (320x224, RGB555)
 - D-pad moves a red 8x8 cursor, A button clicks
-- Demo UI: "Hello Saturn! / LVGL on SGL" label + click-counter button
+- **Benchmark mode**: cycles through 5 test scenes with real-time performance monitoring
+
+### Benchmark scenes
+
+| Scene | What it tests |
+|-------|--------------|
+| **Fill** | 16 color-cycling rectangles in a 4x4 grid |
+| **Text** | 8 labels rendered simultaneously |
+| **Bars** | 6 progress bars with staggered ping-pong animation |
+| **Churn** | Rapid object create/delete every 250ms (memory stress) |
+| **Mixed** | 4 animated rects + 4 labels + 3 animated bars |
+
+Each scene runs for 6 seconds, then auto-advances (loops forever).
+
+### Performance overlay
+
+- **Bottom-right**: FPS, CPU%, render/flush time (`LV_USE_PERF_MONITOR`)
+- **Bottom-left**: Heap usage in KB, peak, fragmentation % (`LV_USE_MEM_MONITOR`)
 
 ## Prerequisites
 
@@ -57,14 +74,14 @@ saturn-lvgl/
 ├── compile.bat           Sets PATH for joengine compiler + SGL tools, runs make
 ├── clean.bat             Removes all build artifacts
 ├── Mednafen.bat          Launches emulator with sl_coff.cue
-├── main.c                SGL init + LVGL init + demo UI (label + button)
+├── main.c                SGL init + LVGL init + benchmark (5 scenes + sysmon)
 ├── lv_port_disp.c/h      VDP2 NBG1 bitmap flush, RGB565 -> Saturn RGB555
 ├── lv_port_indev.c/h      Smpc_Peripheral D-pad + A button (active-low)
 ├── lv_port_tick.c/h       slIntFunction() vblank counter -> milliseconds
-├── lv_conf.h             LVGL config: 48KB heap, RGB565, no FPU, big-endian
+├── lv_conf.h             LVGL config: 48KB heap, RGB565, no FPU, big-endian, sysmon
 ├── saturn_limits.h       Minimal limits.h for SH-2
 ├── libc_shims.c          memcpy/memset/strlen etc. (no libc linked)
-├── lvgl_srcs_minimal.mk  124 LVGL source files (minimal subset)
+├── lvgl_srcs_minimal.mk  126 LVGL source files (core + label + button + bar + sysmon)
 ├── common.h              SGL work area constants (unused — SGLAREA.O used instead)
 ├── ZTE/workarea.c        Custom work area (unused — SGLAREA.O used instead)
 ├── cd/ABS.TXT            ISO metadata
@@ -87,3 +104,12 @@ The [joengine saturn-lvgl sample](https://github.com/johannes-fetz/joern) (`joen
 | Display stride | `JO_VDP2_WIDTH` | `512` (hardcoded) |
 | Resolution | 320x240 | 320x224 |
 | Compiler | `sh-elf-gcc` (via jo_engine_makefile) | `sh-elf-gcc` (standalone makefile) |
+
+## Saturn constraints
+
+- **CPU**: SH-2 @ 28.6 MHz, no FPU
+- **LVGL heap**: 48 KB (`LV_MEM_SIZE`)
+- **Display**: 320x224, VDP2 NBG1 bitmap, 24-line double-buffered partial rendering
+- **Drawing**: `LV_DRAW_SW_COMPLEX=0` (no rounded corners, shadows, or arcs)
+- **Widgets**: label, button, bar only (to fit in 48KB)
+- **Tick resolution**: ~16.67 ms (vblank-based, NTSC 60 Hz)

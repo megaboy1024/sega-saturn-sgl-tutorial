@@ -119,5 +119,11 @@ SRCS += lvgl/src/widgets/label/lv_label.c
 SRCS += lvgl/src/widgets/button/lv_button.c
 SRCS += lvgl/src/widgets/bar/lv_bar.c
 
+# --- Observer (needed by sysmon) ---
+SRCS += lvgl/src/others/observer/lv_observer.c
+
+# --- Sysmon (perf + memory monitor) ---
+SRCS += lvgl/src/others/sysmon/lv_sysmon.c
+
 # --- Libs: bin decoder (needed for image/font cache) ---
 SRCS += lvgl/src/libs/bin_decoder/lv_bin_decoder.c
