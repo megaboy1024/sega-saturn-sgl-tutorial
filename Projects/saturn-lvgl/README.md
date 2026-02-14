@@ -75,7 +75,7 @@ saturn-lvgl/
 ├── clean.bat             Removes all build artifacts
 ├── Mednafen.bat          Launches emulator with sl_coff.cue
 ├── main.c                SGL init + LVGL init + benchmark (5 scenes + sysmon)
-├── lv_port_disp.c/h      VDP2 NBG1 bitmap flush, RGB565 -> Saturn RGB555
+├── lv_port_disp.c/h      VDP2 NBG1 bitmap flush, optimized RGB565 -> Saturn RGB555
 ├── lv_port_indev.c/h      Smpc_Peripheral D-pad + A button (active-low)
 ├── lv_port_tick.c/h       slIntFunction() vblank counter -> milliseconds
 ├── lv_conf.h             LVGL config: 48KB heap, RGB565, no FPU, big-endian, sysmon
@@ -104,6 +104,15 @@ The [joengine saturn-lvgl sample](https://github.com/johannes-fetz/joern) (`joen
 | Display stride | `JO_VDP2_WIDTH` | `512` (hardcoded) |
 | Resolution | 320x240 | 320x224 |
 | Compiler | `sh-elf-gcc` (via jo_engine_makefile) | `sh-elf-gcc` (standalone makefile) |
+
+## Flush callback optimization
+
+The VDP2 flush (`lv_port_disp.c`) converts LVGL RGB565 to Saturn RGB555 per-pixel during the copy to VRAM. Key constraints and optimizations:
+
+- **16-bit VRAM writes only** — VDP2 VRAM is on the B-bus (16-bit); 32-bit writes cause freezes
+- **Row pointer increment** — `vrow += 512` avoids a `y * 512` multiply per row
+- **Single-step green extraction** — `(px >> 1) & 0x03E0` converts G6 to G5 in one ALU op
+- **Exact pixel stride** — source advances by `w` pixels per row (not `w >> 1` pairs), correct for any flush width including odd sub-regions
 
 ## Saturn constraints
 

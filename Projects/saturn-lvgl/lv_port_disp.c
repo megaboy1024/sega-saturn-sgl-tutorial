@@ -17,38 +17,49 @@ static uint8_t draw_buf1[DRAW_BUF_SIZE] __attribute__((aligned(4)));
 static uint8_t draw_buf2[DRAW_BUF_SIZE] __attribute__((aligned(4)));
 
 /*
- * Convert RGB565 (LVGL) to Saturn RGB555.
+ * Flush callback: transfer LVGL draw buffer to VDP2 VRAM.
  *
- * LVGL RGB565 (big-endian SH-2):  RRRRRGGG GGGBBBBB
- *   R = bits[15:11], G = bits[10:5], B = bits[4:0]
+ * Converts RGB565 (LVGL) to Saturn RGB555 during the copy.
  *
- * Saturn RGB555:  1BBBBBGG GGGRRRRR
- *   MSB=1 (opaque), B = bits[14:10], G = bits[9:5], R = bits[4:0]
+ * LVGL RGB565:  RRRRRGGG GGGBBBBB   R[15:11] G[10:5] B[4:0]
+ * Saturn:       1BBBBBGG GGGRRRRR   B[14:10] G[9:5]  R[4:0] + opaque bit
+ *
+ * Optimisations vs. the original per-pixel loop:
+ *
+ *  1. 16-bit read/write      — safe for VDP2 VRAM (B-bus, 16-bit access)
+ *                               and correct for any flush width (even or odd)
+ *
+ *  2. Row pointer increment  — avoids y*512 multiply per row
+ *
+ *  3. Fewer ALU ops per pixel — (px>>1)&0x03E0 extracts G5 in one step
+ *     instead of the original shift-mask-shift sequence
  */
-static inline uint16_t rgb565_to_saturn(uint16_t rgb565)
-{
-    uint16_t r5 = (rgb565 >> 11) & 0x1F;
-    uint16_t g5 = (rgb565 >> 6)  & 0x1F;  /* take top 5 of 6 green bits */
-    uint16_t b5 =  rgb565        & 0x1F;
-    return 0x8000 | (b5 << 10) | (g5 << 5) | r5;
-}
-
-/* Flush callback: transfer LVGL draw buffer to VDP2 VRAM */
 static void saturn_flush_cb(lv_display_t *disp, const lv_area_t *area,
                             uint8_t *px_map)
 {
-    uint16_t *src = (uint16_t *)px_map;
-    volatile uint16_t *vram = (volatile uint16_t *)VDP2_VRAM_A0;
+    const uint16_t *src = (const uint16_t *)px_map;
+    int32_t w = area->x2 - area->x1 + 1;
+    int32_t y;
 
-    int32_t x, y;
-    for (y = area->y1; y <= area->y2; y++)
-    {
-        volatile uint16_t *row = vram + (y * VDP2_STRIDE);
-        for (x = area->x1; x <= area->x2; x++)
-        {
-            row[x] = rgb565_to_saturn(*src);
-            src++;
+    /* VRAM destination row (16-bit pointer for safe VDP2 writes) */
+    volatile uint16_t *vrow = (volatile uint16_t *)VDP2_VRAM_A0
+                              + area->y1 * VDP2_STRIDE + area->x1;
+
+    for (y = area->y1; y <= area->y2; y++) {
+        const uint16_t    *s = src;
+        volatile uint16_t *d = vrow;
+        int32_t            n = w;
+
+        while (n-- > 0) {
+            uint16_t px = *s++;
+            *d++ = 0x8000
+                 | ((px & 0x001F) << 10)    /* B5 -> [14:10] */
+                 | ((px >> 1) & 0x03E0)     /* G5 -> [9:5]   */
+                 | (px >> 11);              /* R5 -> [4:0]   */
         }
+
+        src  += w;             /* next source row  (exact pixel count) */
+        vrow += VDP2_STRIDE;   /* next VRAM row    (512 pixels)        */
     }
 
     lv_display_flush_ready(disp);
