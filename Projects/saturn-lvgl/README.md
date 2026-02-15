@@ -69,7 +69,7 @@ To test with a 4MB cart in Mednafen, `Mednafen.bat` passes `-ss.cart extram4`.
 This project requires the [joengine](https://github.com/johannes-fetz/joern) repository cloned as a sibling directory:
 
 ```
-Documents/GitHub/
+<your-projects-folder>/
 ├── sega-saturn-sgl-tutorial/   (this repo)
 └── joengine/                   (required for sh-elf-gcc 9.3 + ELF SGL libs)
 ```
@@ -105,6 +105,17 @@ The original `sh-coff-gcc` (GCC 4.0) in this repo's `Compiler/` is too old for L
    Mednafen.bat
    ```
 
+## Running on real hardware (Saroo / ODE)
+
+The build produces these files in `Projects/saturn-lvgl/`:
+
+| File | Purpose |
+|------|---------|
+| `sl_coff.iso` | Disc image |
+| `sl_coff.cue` | CUE sheet (references the ISO) |
+
+Copy both `sl_coff.iso` and `sl_coff.cue` to your Saroo SD card in the same folder. The RAM cart detection works automatically on real hardware — no flags needed (the `-ss.cart extram4` flag is Mednafen-only).
+
 ## Project structure
 
 ```
@@ -118,10 +129,10 @@ saturn-lvgl/
 ├── lv_port_disp.c/h      VDP2 NBG1 bitmap flush, optimized RGB565 -> Saturn RGB555
 ├── lv_port_indev.c/h      Smpc_Peripheral D-pad + A button (active-low)
 ├── lv_port_tick.c/h       slIntFunction() vblank counter -> milliseconds
-├── lv_conf.h             LVGL config: 128KB heap, RGB565, 19 widgets, sysmon
+├── lv_conf.h             LVGL config: 128KB heap, RGB565, 20 widgets, sysmon
 ├── saturn_limits.h       Minimal limits.h for SH-2
 ├── libc_shims.c          memcpy/memset/strlen etc. (no libc linked)
-├── lvgl_srcs_minimal.mk  LVGL source files (core + 19 widgets + sysmon)
+├── lvgl_srcs_minimal.mk  LVGL source files (core + 20 widgets + sysmon)
 ├── common.h              SGL work area constants (unused — SGLAREA.O used instead)
 ├── ZTE/workarea.c        Custom work area (unused — SGLAREA.O used instead)
 ├── cd/ABS.TXT            ISO metadata
