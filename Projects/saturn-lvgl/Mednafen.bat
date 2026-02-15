@@ -1,2 +1,2 @@
-..\..\Emulators\mednafen\mednafen.exe "sl_coff.cue"
+..\..\Emulators\mednafen\mednafen.exe -ss.cart extram4 "sl_coff.cue"
 PAUSE

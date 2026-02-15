@@ -1,29 +1,59 @@
-# Saturn LVGL (Pure SGL)
+# Saturn LVGL Widget Showcase (Pure SGL)
 
 LVGL v9.2 running on the Sega Saturn using SGL directly — no Jo Engine dependency.
 
 ## What it does
 
 - Renders LVGL UI to VDP2 NBG1 in bitmap mode (320x224, RGB555)
-- D-pad moves a red 8x8 cursor, A button clicks
-- **Benchmark mode**: cycles through 5 test scenes with real-time performance monitoring
+- D-pad moves cursor, A button clicks
+- **Widget showcase**: cycles through 6 scenes demonstrating 19 LVGL widgets
+- **RAM cart detection**: detects 1MB/4MB expansion cartridge if present
+- L/R triggers: manual scene navigation
 
-### Benchmark scenes
+### Showcase scenes
 
-| Scene | What it tests |
-|-------|--------------|
-| **Fill** | 16 color-cycling rectangles in a 4x4 grid |
-| **Text** | 8 labels rendered simultaneously |
-| **Bars** | 6 progress bars with staggered ping-pong animation |
-| **Churn** | Rapid object create/delete every 250ms (memory stress) |
-| **Mixed** | 4 animated rects + 4 labels + 3 animated bars |
+| Scene | Widgets |
+|-------|---------|
+| **Controls** | button, checkbox, switch, slider |
+| **Selectors** | dropdown, roller, spinbox, button matrix |
+| **Text** | textarea, span group, scrolling label |
+| **Data** | bar (animated), LED, line, table |
+| **Lists** | tabview with list items |
+| **Containers** | window, tileview, message box |
 
-Each scene runs for 6 seconds, then auto-advances (loops forever).
+Each scene runs for 8 seconds, then auto-advances (loops forever).
+
+### Enabled widgets (19)
+
+label, button, bar, slider, switch, checkbox, led, line, table, tileview,
+span, dropdown, roller, buttonmatrix, textarea, spinbox, tabview, list,
+msgbox, win, image (internal dependency for msgbox)
+
+### Excluded widgets
+
+| Widget | Reason |
+|--------|--------|
+| arc, spinner, scale | Require `LV_DRAW_SW_COMPLEX=1` (arc rendering) |
+| chart, calendar | Too heavy for Saturn constraints |
+| canvas, animimage, lottie | Require image/vector subsystems |
+| menu | Hard-codes `lv_image_create()` for back-arrow icon |
+| keyboard | Too large for 320x224 screen |
 
 ### Performance overlay
 
 - **Bottom-right**: FPS, CPU%, render/flush time (`LV_USE_PERF_MONITOR`)
 - **Bottom-left**: Heap usage in KB, peak, fragmentation % (`LV_USE_MEM_MONITOR`)
+
+## RAM expansion cartridge
+
+The Saturn supports 1MB and 4MB RAM expansion cartridges. This project detects the cart at startup and displays its status on screen.
+
+| Cart Type | ID at 0x24FFFFFF | Memory Range |
+|-----------|-----------------|--------------|
+| 4MB (32 Mbit) | 0x5c | 0x22400000 - 0x22600000 (2 MB) |
+| 1MB (8 Mbit) | 0x5a | Two 512 KB zones at 0x22400000 and 0x22600000 |
+
+To test with a 4MB cart in Mednafen, `Mednafen.bat` passes `-ss.cart extram4`.
 
 ## Prerequisites
 
@@ -61,7 +91,7 @@ The original `sh-coff-gcc` (GCC 4.0) in this repo's `Compiler/` is too old for L
    compile.bat
    ```
 
-3. Run in Mednafen:
+3. Run in Mednafen (with 4MB RAM cart):
    ```
    Mednafen.bat
    ```
@@ -73,15 +103,16 @@ saturn-lvgl/
 ├── makefile              sh-elf-gcc build, links SGLAREA.O + SGL ELF libs + LVGL
 ├── compile.bat           Sets PATH for joengine compiler + SGL tools, runs make
 ├── clean.bat             Removes all build artifacts
-├── Mednafen.bat          Launches emulator with sl_coff.cue
-├── main.c                SGL init + LVGL init + benchmark (5 scenes + sysmon)
+├── Mednafen.bat          Launches emulator with sl_coff.cue + 4MB RAM cart
+├── main.c                SGL init + LVGL init + 6 widget showcase scenes
+├── saturn_ramcart.h      RAM expansion cartridge detection and initialization
 ├── lv_port_disp.c/h      VDP2 NBG1 bitmap flush, optimized RGB565 -> Saturn RGB555
 ├── lv_port_indev.c/h      Smpc_Peripheral D-pad + A button (active-low)
 ├── lv_port_tick.c/h       slIntFunction() vblank counter -> milliseconds
-├── lv_conf.h             LVGL config: 48KB heap, RGB565, no FPU, big-endian, sysmon
+├── lv_conf.h             LVGL config: 128KB heap, RGB565, 19 widgets, sysmon
 ├── saturn_limits.h       Minimal limits.h for SH-2
 ├── libc_shims.c          memcpy/memset/strlen etc. (no libc linked)
-├── lvgl_srcs_minimal.mk  126 LVGL source files (core + label + button + bar + sysmon)
+├── lvgl_srcs_minimal.mk  LVGL source files (core + 19 widgets + sysmon)
 ├── common.h              SGL work area constants (unused — SGLAREA.O used instead)
 ├── ZTE/workarea.c        Custom work area (unused — SGLAREA.O used instead)
 ├── cd/ABS.TXT            ISO metadata
@@ -89,6 +120,15 @@ saturn-lvgl/
 ├── cd/CPY.TXT
 └── lvgl/                 (clone of LVGL v9.2 — not committed, see Build step 1)
 ```
+
+## Flush callback optimization
+
+The VDP2 flush (`lv_port_disp.c`) converts LVGL RGB565 to Saturn RGB555 per-pixel during the copy to VRAM. Key constraints and optimizations:
+
+- **16-bit VRAM writes only** — VDP2 VRAM is on the B-bus (16-bit); 32-bit writes cause freezes
+- **Row pointer increment** — `vrow += 512` avoids a `y * 512` multiply per row
+- **Single-step green extraction** — `(px >> 1) & 0x03E0` converts G6 to G5 in one ALU op
+- **Exact pixel stride** — source advances by `w` pixels per row (not `w >> 1` pairs), correct for any flush width including odd sub-regions
 
 ## Key differences from Jo Engine version
 
@@ -105,20 +145,11 @@ The [joengine saturn-lvgl sample](https://github.com/johannes-fetz/joern) (`joen
 | Resolution | 320x240 | 320x224 |
 | Compiler | `sh-elf-gcc` (via jo_engine_makefile) | `sh-elf-gcc` (standalone makefile) |
 
-## Flush callback optimization
-
-The VDP2 flush (`lv_port_disp.c`) converts LVGL RGB565 to Saturn RGB555 per-pixel during the copy to VRAM. Key constraints and optimizations:
-
-- **16-bit VRAM writes only** — VDP2 VRAM is on the B-bus (16-bit); 32-bit writes cause freezes
-- **Row pointer increment** — `vrow += 512` avoids a `y * 512` multiply per row
-- **Single-step green extraction** — `(px >> 1) & 0x03E0` converts G6 to G5 in one ALU op
-- **Exact pixel stride** — source advances by `w` pixels per row (not `w >> 1` pairs), correct for any flush width including odd sub-regions
-
 ## Saturn constraints
 
 - **CPU**: SH-2 @ 28.6 MHz, no FPU
-- **LVGL heap**: 48 KB (`LV_MEM_SIZE`)
+- **LVGL heap**: 128 KB (`LV_MEM_SIZE`)
 - **Display**: 320x224, VDP2 NBG1 bitmap, 24-line double-buffered partial rendering
 - **Drawing**: `LV_DRAW_SW_COMPLEX=0` (no rounded corners, shadows, or arcs)
-- **Widgets**: label, button, bar only (to fit in 48KB)
+- **Widgets**: 19 of 36 LVGL widgets enabled (flat-rendering compatible only)
 - **Tick resolution**: ~16.67 ms (vblank-based, NTSC 60 Hz)

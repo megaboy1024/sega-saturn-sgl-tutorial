@@ -114,10 +114,29 @@ SRCS += lvgl/src/themes/simple/lv_theme_simple.c
 SRCS += lvgl/src/layouts/lv_layout.c
 SRCS += lvgl/src/layouts/flex/lv_flex.c
 
-# --- Widgets (label + button + bar for theme) ---
+# --- Widgets ---
 SRCS += lvgl/src/widgets/label/lv_label.c
 SRCS += lvgl/src/widgets/button/lv_button.c
 SRCS += lvgl/src/widgets/bar/lv_bar.c
+SRCS += lvgl/src/widgets/image/lv_image.c
+SRCS += lvgl/src/widgets/slider/lv_slider.c
+SRCS += lvgl/src/widgets/switch/lv_switch.c
+SRCS += lvgl/src/widgets/checkbox/lv_checkbox.c
+SRCS += lvgl/src/widgets/led/lv_led.c
+SRCS += lvgl/src/widgets/line/lv_line.c
+SRCS += lvgl/src/widgets/table/lv_table.c
+SRCS += lvgl/src/widgets/tileview/lv_tileview.c
+SRCS += lvgl/src/widgets/span/lv_span.c
+SRCS += lvgl/src/widgets/dropdown/lv_dropdown.c
+SRCS += lvgl/src/widgets/roller/lv_roller.c
+SRCS += lvgl/src/widgets/buttonmatrix/lv_buttonmatrix.c
+SRCS += lvgl/src/widgets/textarea/lv_textarea.c
+SRCS += lvgl/src/widgets/spinbox/lv_spinbox.c
+SRCS += lvgl/src/widgets/tabview/lv_tabview.c
+SRCS += lvgl/src/widgets/keyboard/lv_keyboard.c
+SRCS += lvgl/src/widgets/list/lv_list.c
+SRCS += lvgl/src/widgets/msgbox/lv_msgbox.c
+SRCS += lvgl/src/widgets/win/lv_win.c
 
 # --- Observer (needed by sysmon) ---
 SRCS += lvgl/src/others/observer/lv_observer.c
