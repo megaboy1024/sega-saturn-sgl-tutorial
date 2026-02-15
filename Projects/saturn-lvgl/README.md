@@ -9,6 +9,8 @@ LVGL v9.2 running on the Sega Saturn using SGL directly — no Jo Engine depende
 - **Widget showcase**: cycles through 6 scenes demonstrating 19 LVGL widgets
 - **RAM cart detection**: detects 1MB/4MB expansion cartridge if present
 - L/R triggers: manual scene navigation
+- Z button: pause/resume auto-advance
+- X button: toggle performance/memory overlay
 
 ### Showcase scenes
 
@@ -16,18 +18,25 @@ LVGL v9.2 running on the Sega Saturn using SGL directly — no Jo Engine depende
 |-------|---------|
 | **Controls** | button, checkbox, switch, slider |
 | **Selectors** | dropdown, roller, spinbox, button matrix |
-| **Text** | textarea, span group, scrolling label |
+| **Text** | textarea + on-screen keyboard, span group, scrolling label |
 | **Data** | bar (animated), LED, line, table |
 | **Lists** | tabview with list items |
 | **Containers** | window, tileview, message box |
 
 Each scene runs for 8 seconds, then auto-advances (loops forever).
 
-### Enabled widgets (19)
+### Interactive features
+
+- **Spinbox** (Scene 2): `-`/`+` buttons to increment/decrement
+- **Number pad** (Scene 2): press buttons, result label shows which was pressed
+- **Dropdown** (Scene 2): opens a styled list popup with dark background
+- **Textarea** (Scene 3): focus to show on-screen keyboard, press OK or keyboard icon to close
+
+### Enabled widgets (20)
 
 label, button, bar, slider, switch, checkbox, led, line, table, tileview,
-span, dropdown, roller, buttonmatrix, textarea, spinbox, tabview, list,
-msgbox, win, image (internal dependency for msgbox)
+span, dropdown, roller, buttonmatrix, textarea, spinbox, keyboard, tabview,
+list, msgbox, win, image (internal dependency for msgbox)
 
 ### Excluded widgets
 
@@ -37,12 +46,12 @@ msgbox, win, image (internal dependency for msgbox)
 | chart, calendar | Too heavy for Saturn constraints |
 | canvas, animimage, lottie | Require image/vector subsystems |
 | menu | Hard-codes `lv_image_create()` for back-arrow icon |
-| keyboard | Too large for 320x224 screen |
 
 ### Performance overlay
 
 - **Bottom-right**: FPS, CPU%, render/flush time (`LV_USE_PERF_MONITOR`)
 - **Bottom-left**: Heap usage in KB, peak, fragmentation % (`LV_USE_MEM_MONITOR`)
+- **X button**: toggles overlay visibility (uses `lv_obj_check_type` to hide only labels, preserving cursor)
 
 ## RAM expansion cartridge
 
@@ -151,5 +160,5 @@ The [joengine saturn-lvgl sample](https://github.com/johannes-fetz/joern) (`joen
 - **LVGL heap**: 128 KB (`LV_MEM_SIZE`)
 - **Display**: 320x224, VDP2 NBG1 bitmap, 24-line double-buffered partial rendering
 - **Drawing**: `LV_DRAW_SW_COMPLEX=0` (no rounded corners, shadows, or arcs)
-- **Widgets**: 19 of 36 LVGL widgets enabled (flat-rendering compatible only)
+- **Widgets**: 20 of 36 LVGL widgets enabled (flat-rendering compatible only)
 - **Tick resolution**: ~16.67 ms (vblank-based, NTSC 60 Hz)

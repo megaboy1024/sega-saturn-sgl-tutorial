@@ -210,6 +210,17 @@ static void scene_selectors(void)
     lv_obj_set_width(dd, 140);
     apply_flat(dd);
 
+    /* Style the dropdown list popup so items have a visible background */
+    lv_obj_t *dd_list = lv_dropdown_get_list(dd);
+    if (dd_list) {
+        apply_flat(dd_list);
+        lv_obj_set_style_bg_color(dd_list, lv_color_hex(0x222233), 0);
+        lv_obj_set_style_bg_opa(dd_list, LV_OPA_COVER, 0);
+        lv_obj_set_style_border_color(dd_list, lv_color_hex(0x4444AA), 0);
+        lv_obj_set_style_border_width(dd_list, 1, 0);
+        lv_obj_set_style_text_color(dd_list, lv_color_hex(0xFFFFFF), 0);
+    }
+
     /* Spinbox with +/- buttons */
     lv_obj_t *sb_lbl = lv_label_create(scene_cont);
     lv_label_set_text(sb_lbl, "Value:");
